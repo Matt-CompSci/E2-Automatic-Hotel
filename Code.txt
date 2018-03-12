@@ -1,0 +1,292 @@
+@name Hotel
+@inputs [EGP]:wirelink [User]:entity
+@inputs [Door1 Door2 Door3 Door4]:entity
+@outputs [Door1Open Door2Open Door3Open Door4Open]:number
+@persist [CurPly]:entity
+@persist [Amplitude Page]:number
+@persist [Hovered]:array
+@persist [HouseOwners]:table
+
+
+if(first() | dupefinished())
+{
+    entity():createWire(entity():isWeldedTo(), "EGP", "wirelink")
+    entity():createWire(entity():isWeldedTo(), "User", "User")
+    
+    EGP:egpClear()
+
+    function void startScreen()
+    {
+        EGP:egpClear()
+        
+        EGP:egpRoundedBox(1, vec2(256), vec2(512))
+        EGP:egpColor(1,vec(32))
+        
+        EGP:egpCircle(2, vec2(256), vec2(128))
+        EGP:egpMaterial(2, "gui/gmod_logo")
+        
+        EGP:egpText(3, "Hotel Manager", vec2(260, 68))
+        EGP:egpAlign(3, 1, 1)
+        EGP:egpColor(3, vec(0))
+        EGP:egpSize(3, 72)
+        
+        EGP:egpText(4, "Hotel Manager", vec2(256, 64))
+        EGP:egpAlign(4, 1, 1)
+        EGP:egpSize(4, 72)
+        
+        EGP:egpText(5, "Press E To Start", vec2(260, 444))
+        EGP:egpAlign(5, 1, 1)
+        EGP:egpColor(5, vec(0))
+        EGP:egpSize(5, 72)
+        
+        EGP:egpText(6, "Press E To Start", vec2(256, 448))
+        EGP:egpAlign(6, 1, 1)
+        EGP:egpSize(6, 72)
+        
+        Page = 1
+    }
+
+    function void mainScreen()
+    {
+        EGP:egpClear()
+        
+        EGP:egpRoundedBox(1, vec2(256), vec2(512))
+        EGP:egpColor(1,vec(32))    
+            
+        EGP:egpRoundedBox(2, vec2(256, 50), vec2(500, 80))
+        EGP:egpSize(2,vec2(500,80))
+        EGP:egpColor(2,vec(28,190,218))  
+        
+        EGP:egpText(3,"Auto Hotel", vec2(256, 50))
+        EGP:egpSize(3,40)
+        EGP:egpAlign(3, 1, 1)
+        
+        for(I = 4, 7)
+        {
+            EGP:egpRoundedBox(I, vec2(256, 165 + (I - 4) * 100), vec2(500, 80))
+            EGP:egpColor(I, vec(40))
+        }
+        
+        for(I = 8, 11)
+        {
+            EGP:egpText(I, "Room : " + (I - 7) + " : $5000 / 10 minutes", vec2(256, 165 + (I - 8) * 100))
+            EGP:egpAlign(I, 1, 1)
+            EGP:egpSize(I, 32)
+            
+            if(HouseOwners[I - 7, entity]:isPlayer())
+            {
+                EGP:egpSetText(I, "Owned By: " + HouseOwners[I - 7, entity]:name())
+            }
+        }
+        
+        Page = 2
+    }
+    
+    function number wirelink:hoverButton(Ply:entity, ID:number)
+    {
+        Cursor = This:egpCursor(Ply)
+        Center = This:egpPos(ID)
+        Angle = This:egpAngle(ID)
+        Size = This:egpSize(ID)
+        return inrange((Cursor - Center):rotate(Angle) / Size, vec2(-0.5), vec2(0.5))
+    }
+
+    
+    function number wirelink:pressButton(Ply:entity, ID:number)
+    {
+        return This:hoverButton(Ply, ID) & Ply:keyUse()
+    }
+    
+    function void openDoor(DoorID:number)
+    {
+        switch(DoorID)
+        {
+            case 1,
+                Door1Open = 1
+                break
+            case 2,
+                Door2Open = 1
+                break
+            case 3,
+                Door3Open = 1
+                break
+            case 4,
+                Door4Open = 1
+                break
+            default,
+                break
+        }
+    }
+    
+    function void closeDoor(DoorID:number)
+    {
+        switch(DoorID)
+        {
+            case 1,
+                Door1Open = 0
+                break
+            case 2,
+                Door2Open = 0
+                break
+            case 3,
+                Door3Open = 0
+                break
+            case 4,
+                Door4Open = 0
+                break
+            default,
+                break
+        }
+    }
+    
+    function void manageDoor(ID:number, Door:entity)
+    {
+  
+        if(HouseOwners[ID, entity]:pos():distance(Door:pos()) < 100)
+        {
+            openDoor(ID)
+        }
+        
+        else
+        {
+            closeDoor(ID)
+        }
+    }
+    
+    
+    function void manageDoor(DoorID:number)
+    {
+        switch(DoorID)
+        {
+            case 1,
+                manageDoor(DoorID, Door1)
+                break
+            case 2,
+                manageDoor(DoorID, Door2)
+                break
+            case 3,
+                manageDoor(DoorID, Door3)
+                break
+            case 4,
+                manageDoor(DoorID, Door4)
+                break
+            default,
+                break
+        }
+    }
+    
+    startScreen()
+}
+
+elseif(inputClkName() == "User")
+{
+    if(Page == 1)
+    {
+        CurPly = User
+        mainScreen()
+    }
+    
+    elseif(Page == 2 & CurPly == User)
+    {
+        for(I = 4, 7)
+        {
+            if(EGP:pressButton(CurPly, I))
+            {
+                if(!HouseOwners[I, entity]:isPlayer())
+                {
+                    HouseID = I - 3
+                    moneyRequest(CurPly, 5000, "" + HouseID)
+                }
+            }
+        }
+    }
+}
+
+
+elseif(moneyClk())
+{
+    Reason = moneyClkTitle()
+    Ply = moneyClkPlayer()
+    RoomID = Reason:toNumber()
+    HouseOwners[RoomID, entity] = Ply
+    timer("" + RoomID, 300000)
+    mainScreen()
+}
+
+elseif(moneyTimeout())
+{
+    RoomID = moneyTimeoutTitle():toNumber()
+    
+    if(HouseOwners[RoomID, entity]:isPlayer())
+    {
+        concmd(format("ulx psay \"%s\" You have been evicted for not paying rent!", HouseOwners[RoomID, entity]:name()))
+    }
+}
+
+elseif(moneyNoClk())
+{
+    RoomID = moneyNoClkTitle():toNumber()
+    
+    if(HouseOwners[RoomID, entity]:isPlayer())
+    {
+        concmd(format("ulx psay \"%s\" You have been evicted for not paying rent!", HouseOwners[RoomID, entity]:name()))
+    }
+}
+
+elseif(clk("interval"))
+{
+    if(Page == 2)
+    {
+        for(I = 4, 7)
+        {
+            if(EGP:hoverButton(CurPly, I))
+            {
+                if(Hovered[I, number] != 1)
+                {
+                    EGP:egpColor(I, vec(60))
+                    Hovered[I, number] = 1
+                    break
+                }
+            }
+            
+            elseif(Hovered[I, number] == 1)
+            {
+                EGP:egpColor(I, vec(40))
+                Hovered[I, number] = 0
+            }
+        }
+        
+        if(CurPly:pos():distance(EGP:entity():pos()) > 200)
+        {
+            startScreen()
+        }
+    }
+    
+    for(I = 1, 4)
+    {
+        manageDoor(I)
+    }
+}
+
+for(I = 1, 4)
+{
+    if(clk("" + I))
+    {
+        if(HouseOwners[clkName():toNumber(), entity]:isPlayer())
+        {
+            moneyRequest(HouseOwners[clkName():toNumber(), entity], 5000)
+        }
+        
+        else
+        {
+            HouseOwners[clkName():toNumber(), entity] = noentity()
+            
+            if(Page == 2)
+            {
+                mainScreen()
+            }
+        }
+    }
+}
+
+interval(250)
